@@ -14,10 +14,11 @@
     .green { background: forestgreen; color: white; }
     .red { background: crimson; color: white; }
     .violet { background: purple; color: white; }
-    .number-btn { width: 60px; height: 60px; margin: 5px; font-size: 20px; }
     .menu-bar { position: absolute; top: 10px; right: 20px; }
     #timer { font-weight: bold; color: red; margin-top: 10px; font-size: 20px; }
-    #previousResult { font-size: 16px; color: #333; margin-top: 5px; }
+    table { margin: 20px auto; border-collapse: collapse; width: 90%; max-width: 500px; }
+    th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
+    th { background: #f0f0f0; }
   </style>
 </head>
 <body>
@@ -61,27 +62,25 @@
     </div>
 
     <div id="gameSection">
-      <h4>Choose a color or number (min ₹30 required)</h4>
+      <h4>Choose a color (min ₹30 required)</h4>
       <div>
         <button class="button green" onclick="placeBet('Green')">Green</button>
         <button class="button violet" onclick="placeBet('Violet')">Violet</button>
         <button class="button red" onclick="placeBet('Red')">Red</button>
       </div>
-      <div>
-        <button class="number-btn" onclick="placeBet(0)">0</button>
-        <button class="number-btn" onclick="placeBet(1)">1</button>
-        <button class="number-btn" onclick="placeBet(2)">2</button>
-        <button class="number-btn" onclick="placeBet(3)">3</button>
-        <button class="number-btn" onclick="placeBet(4)">4</button>
-        <button class="number-btn" onclick="placeBet(5)">5</button>
-        <button class="number-btn" onclick="placeBet(6)">6</button>
-        <button class="number-btn" onclick="placeBet(7)">7</button>
-        <button class="number-btn" onclick="placeBet(8)">8</button>
-        <button class="number-btn" onclick="placeBet(9)">9</button>
-      </div>
       <p id="status"></p>
       <p id="timer">✅ You can place your next bet now</p>
-      <p id="previousResult"></p>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Your Choice</th>
+            <th>System Choice</th>
+            <th>Profit/Loss</th>
+            <th>Wallet</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
     </div>
     <button onclick="logout()">Logout</button>
 
@@ -104,6 +103,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     let userRef, user, userName, betLock = false;
+    const history = [];
 
     function sendOTP() {
       const selectedNumber = document.getElementById("testNumbers").value;
@@ -175,10 +175,10 @@
           document.getElementById("status").innerText = "❌ Minimum ₹30 needed.";
           return;
         }
+
         betLock = true;
         let timeLeft = 10;
         document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
-
         const timerInterval = setInterval(() => {
           timeLeft--;
           document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
@@ -190,28 +190,47 @@
           }
         }, 1000);
 
-        const number = Math.floor(Math.random() * 10);
+        const colorOptions = ['Red', 'Green', 'Violet'];
+        const systemChoice = colorOptions[Math.floor(Math.random() * colorOptions.length)];
         let result = "LOST", winAmount = 0;
 
-        if (typeof choice === 'number' && choice === number) {
-          result = "WON 8X"; winAmount = 80;
-        } else if (choice === 'Green' && [1,3,7,9].includes(number)) {
+        if (choice === 'Green' && ['Green'].includes(systemChoice)) {
           result = "WON 2X"; winAmount = 20;
-        } else if (choice === 'Red' && [2,4,6,8].includes(number)) {
+        } else if (choice === 'Red' && ['Red'].includes(systemChoice)) {
           result = "WON 2X"; winAmount = 20;
-        } else if (choice === 'Violet' && [0,5].includes(number)) {
+        } else if (choice === 'Violet' && ['Violet'].includes(systemChoice)) {
           result = "WON 4X"; winAmount = 40;
         } else {
           winAmount = -10;
         }
 
-        userRef.update({ balance: firebase.firestore.FieldValue.increment(winAmount) });
+        const newBalance = balance + winAmount;
+        userRef.update({ balance: newBalance });
         db.collection("users").doc(user.uid).collection("transactions").add({
-          type: "BET", choice, number, result, amount: winAmount, time: new Date()
+          type: "BET", choice, systemChoice, result, amount: winAmount, time: new Date()
         });
-        document.getElementById("wallet").innerText = balance + winAmount;
-        document.getElementById("status").innerText = `🎯 Draw: ${number}, ${result} | Wallet: ₹${balance + winAmount}`;
-        document.getElementById("previousResult").innerText = `Last Draw: ${number} (${result})`;
+
+        document.getElementById("wallet").innerText = newBalance;
+        document.getElementById("status").innerText = `You chose ${choice}, System chose ${systemChoice} → ${result}`;
+
+        // Update history
+        history.unshift({ choice, systemChoice, result, winAmount, balance: newBalance });
+        if (history.length > 5) history.pop();
+        updateHistoryTable();
+      });
+    }
+
+    function updateHistoryTable() {
+      const tbody = document.getElementById("historyBody");
+      tbody.innerHTML = "";
+      history.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.choice}</td>
+          <td>${row.systemChoice}</td>
+          <td>${row.winAmount >= 0 ? "+₹" + row.winAmount : "-₹" + Math.abs(row.winAmount)}</td>
+          <td>₹${row.balance}</td>`;
+        tbody.appendChild(tr);
       });
     }
 
