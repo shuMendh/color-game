@@ -66,7 +66,7 @@
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDsfZw3EsarePJC8QZzfSUwipKL9rlp9Oo",
-  authDomain: "colorgameapp-7b014.firebaseapp.com",
+  authDomain: "shubhprediction.netlify.app",
   projectId: "colorgameapp-7b014",
   storageBucket: "colorgameapp-7b014.firebasestorage.app",
   messagingSenderId: "969064571113",
@@ -74,7 +74,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// const app = initializeApp(firebaseConfig);
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -85,13 +85,30 @@ const app = initializeApp(firebaseConfig);
     }
 
     function sendOTP() {
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container');
-      const phone = document.getElementById("phone").value;
-      auth.signInWithPhoneNumber(phone, window.recaptchaVerifier).then(confirm => {
-        window.confirmationResult = confirm;
-        alert("OTP Sent");
-      });
-    }
+  const phone = document.getElementById("phone").value;
+
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      'size': 'normal',
+      'callback': function(response) {
+        // reCAPTCHA solved
+      },
+      'expired-callback': function() {
+        alert('reCAPTCHA expired. Try again.');
+      }
+    });
+    window.recaptchaVerifier.render(); // this line is important
+  }
+
+  auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
+    .then(confirm => {
+      window.confirmationResult = confirm;
+      alert("OTP sent successfully!");
+    }).catch(error => {
+      alert("Error sending OTP: " + error.message);
+      console.error(error);
+    });
+}
 
     function verifyOTP() {
       const code = document.getElementById("otp").value;
