@@ -37,8 +37,6 @@
     <select id="testNumbers">
       <option value="">-- Select Test Number --</option>
       <option value="+919999999999">+91 99999 99999 (OTP: 123456)</option>
-      <option value="+919888888888">+91 98888 88888 (OTP: 111111)</option>
-      <option value="+917777777777">+91 77777 77777 (OTP: 222222)</option>
     </select><br />
     <input type="text" id="phone" placeholder="Enter phone +91...">
     <button onclick="sendOTP()">Send OTP</button><br />
@@ -49,11 +47,6 @@
 
   <div id="game" class="hidden">
     <p>👤 Welcome <span id="username"></span> | 📞 <span id="userphone"></span></p>
-    <div id="accountSection" class="hidden">
-      <h3>Account Details</h3>
-      <p>Name: <span id="displayName"></span></p>
-      <p>Phone: <span id="displayPhone"></span></p>
-    </div>
 
     <div id="walletSection" class="hidden">
       <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
@@ -70,6 +63,7 @@
       </div>
       <p id="status"></p>
       <p id="timer">✅ You can place your next bet now</p>
+
       <table id="historyTable">
         <thead>
           <tr>
@@ -82,8 +76,8 @@
         <tbody id="historyBody"></tbody>
       </table>
     </div>
-    <button onclick="logout()">Logout</button>
 
+    <button onclick="logout()">Logout</button>
     <audio id="beepSound">
       <source src="https://www.soundjay.com/buttons/beep-07.mp3" type="audio/mpeg">
     </audio>
@@ -94,7 +88,7 @@
       apiKey: "AIzaSyAnA3CY0FHyjli9oyEaFRp7Wp__5Z9vObk",
       authDomain: "shubh251625.firebaseapp.com",
       projectId: "shubh251625",
-      storageBucket: "shubh251625.firebasestorage.app",
+      storageBucket: "shubh251625.appspot.com",
       messagingSenderId: "541512766925",
       appId: "1:541512766925:web:eca74693e7626b8e496084"
     };
@@ -106,30 +100,18 @@
     const history = [];
 
     function sendOTP() {
-      const selectedNumber = document.getElementById("testNumbers").value;
       const phoneInput = document.getElementById("phone");
-      if (selectedNumber) phoneInput.value = selectedNumber;
+      const selected = document.getElementById("testNumbers").value;
+      if (selected) phoneInput.value = selected;
       userName = document.getElementById("usernameInput").value;
-      if (!userName || !phoneInput.value) return alert("Enter your name and phone number");
-
-      const phone = phoneInput.value;
-
+      if (!userName || !phoneInput.value) return alert("Enter name and phone");
       if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-          size: 'normal',
-          callback: () => {},
-          'expired-callback': () => alert("reCAPTCHA expired. Try again.")
-        });
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container');
         window.recaptchaVerifier.render();
       }
-
-      const appVerifier = window.recaptchaVerifier;
-      auth.signInWithPhoneNumber(phone, appVerifier)
-        .then(confirm => {
-          window.confirmationResult = confirm;
-          alert("OTP sent!");
-        })
-        .catch(error => alert("Error: " + error.message));
+      auth.signInWithPhoneNumber(phoneInput.value, window.recaptchaVerifier)
+        .then(confirm => window.confirmationResult = confirm)
+        .then(() => alert("OTP Sent"));
     }
 
     function verifyOTP() {
@@ -141,12 +123,8 @@
       user = result.user;
       document.getElementById("login").classList.add("hidden");
       document.getElementById("game").classList.remove("hidden");
-
       document.getElementById("username").innerText = userName;
       document.getElementById("userphone").innerText = user.phoneNumber;
-      document.getElementById("displayName").innerText = userName;
-      document.getElementById("displayPhone").innerText = user.phoneNumber;
-
       userRef = db.collection("users").doc(user.uid);
       userRef.get().then(doc => {
         if (!doc.exists) return userRef.set({ name: userName, phone: user.phoneNumber, balance: 100 });
@@ -159,7 +137,6 @@
       const amt = parseInt(document.getElementById("topup").value);
       if (amt > 0) {
         userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) }).then(() => {
-          alert("₹" + amt + " added");
           return userRef.get();
         }).then(doc => {
           document.getElementById("wallet").innerText = doc.data().balance;
@@ -167,23 +144,23 @@
       }
     }
 
-    function placeBet(choiceColor) {
-      if (betLock) return alert("⏳ Wait for next bet.");
+    function placeBet(selectedColor) {
+      if (betLock) return alert("⏳ Wait for next bet");
       userRef.get().then(doc => {
-        let balance = doc.data().balance;
+        const balance = doc.data().balance;
         if (balance < 30) {
-          document.getElementById("status").innerText = "❌ Minimum ₹30 needed.";
+          document.getElementById("status").innerText = "❌ Minimum ₹30 required.";
           return;
         }
 
         betLock = true;
         let timeLeft = 10;
-        document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
-        const timerInterval = setInterval(() => {
+        document.getElementById("timer").innerText = `⏳ Next bet in ${timeLeft}s`;
+        const interval = setInterval(() => {
           timeLeft--;
-          document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
-          if (timeLeft <= 0) {
-            clearInterval(timerInterval);
+          document.getElementById("timer").innerText = `⏳ Next bet in ${timeLeft}s`;
+          if (timeLeft === 0) {
+            clearInterval(interval);
             betLock = false;
             document.getElementById("timer").innerText = "✅ You can place your next bet now";
             document.getElementById("beepSound").play();
@@ -192,31 +169,22 @@
 
         const colorOptions = ['Red', 'Green', 'Violet'];
         const systemChoice = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-        let result = "LOST", winAmount = 0;
+        let result = "LOST", winAmount = -10;
 
-        if (choiceColor === systemChoice) {
-          if (choiceColor === 'Violet') {
-            result = "WON 4X";
-            winAmount = 40;
-          } else {
-            result = "WON 2X";
-            winAmount = 20;
-          }
-        } else {
-          winAmount = -10;
+        if (selectedColor === systemChoice) {
+          result = selectedColor === 'Violet' ? "WON 4X" : "WON 2X";
+          winAmount = selectedColor === 'Violet' ? 40 : 20;
         }
 
         const newBalance = balance + winAmount;
         userRef.update({ balance: newBalance });
         db.collection("users").doc(user.uid).collection("transactions").add({
-          type: "BET", choice: choiceColor, systemChoice, result, amount: winAmount, time: new Date()
+          type: "BET", choice: selectedColor, systemChoice, result, amount: winAmount, time: new Date()
         });
 
         document.getElementById("wallet").innerText = newBalance;
-        document.getElementById("status").innerText = `You chose ${choiceColor}, System chose ${systemChoice} → ${result}`;
-
-        // Update history
-        history.unshift({ choice: choiceColor, systemChoice, result, winAmount, balance: newBalance });
+        document.getElementById("status").innerText = `🎯 You chose: ${selectedColor}, System chose: ${systemChoice} → ${result}`;
+        history.unshift({ choice: selectedColor, systemChoice, result, winAmount, balance: newBalance });
         if (history.length > 5) history.pop();
         updateHistoryTable();
       });
@@ -237,15 +205,12 @@
     }
 
     function logout() {
-      auth.signOut();
-      location.reload();
+      auth.signOut().then(() => location.reload());
     }
 
     function handleMenu() {
-      const section = document.getElementById("menu").value;
-      document.getElementById("gameSection").style.display = section === "game" ? "block" : "none";
-      document.getElementById("walletSection").style.display = section === "wallet" ? "block" : "none";
-      document.getElementById("accountSection").style.display = section === "account" ? "block" : "none";
+      document.getElementById("walletSection").style.display = (menu.value === "wallet") ? "block" : "none";
+      document.getElementById("gameSection").style.display = (menu.value === "game") ? "block" : "none";
     }
   </script>
 </body>
