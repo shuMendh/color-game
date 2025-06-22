@@ -2,188 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Color Prediction Game</title>
+  <title>Color Game with Wallet</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f8f8f8;
-      text-align: center;
-      padding: 30px;
-    }
-    .balance {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    .timer {
-      font-size: 20px;
-      color: #d9534f;
-      margin-bottom: 20px;
-    }
-    button {
-      padding: 15px 30px;
-      font-size: 18px;
-      margin: 10px;
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-    }
-    .red { background-color: crimson; color: white; }
-    .green { background-color: forestgreen; color: white; }
-    .violet { background-color: purple; color: white; }
-    .numbers {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      max-width: 300px;
-      margin: 0 auto 20px;
-    }
-    .number-btn {
-      width: 60px;
-      height: 60px;
-      font-size: 22px;
-      margin: 5px;
-      background: #ddd;
-      border-radius: 8px;
-    }
-    .result, .history {
-      font-size: 20px;
-      margin-top: 20px;
-    }
-    .history-list {
-      list-style: none;
-      padding: 0;
-    }
-    .history-item {
-      margin: 5px 0;
-    }
+    body { font-family: Arial; text-align: center; padding: 30px; }
+    input, button { margin: 8px; padding: 10px; font-size: 16px; }
+    .hidden { display: none; }
+    .button { padding: 12px 25px; margin: 10px; font-size: 16px; cursor: pointer; border-radius: 8px; }
+    .green { background: forestgreen; color: white; }
+    .red { background: crimson; color: white; }
+    .violet { background: purple; color: white; }
+    .number-btn { width: 60px; height: 60px; margin: 5px; font-size: 20px; }
   </style>
 </head>
 <body>
-  <h1>Color Prediction Game</h1>
-  <div class="balance" id="balance">Wallet Balance: ₹100</div>
-  <div class="timer" id="timer">Next Draw In: 60s</div>
-  <div>
-    <button class="green" onclick="placeBet('Green')">Join Green</button>
-    <button class="violet" onclick="placeBet('Violet')">Join Violet</button>
-    <button class="red" onclick="placeBet('Red')">Join Red</button>
+  <h2>Color Prediction Game</h2>
+  <div id="login">
+    <button onclick="loginWithGoogle()">Login with Google</button>
+    <div>
+      <input type="text" id="phone" placeholder="Enter phone +91...">
+      <button onclick="sendOTP()">Send OTP</button>
+      <input type="text" id="otp" placeholder="Enter OTP">
+      <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+    <div id="recaptcha-container"></div>
   </div>
-  <div class="numbers">
-    <button class="number-btn" onclick="placeBet(0)">0</button>
-    <button class="number-btn" onclick="placeBet(1)">1</button>
-    <button class="number-btn" onclick="placeBet(2)">2</button>
-    <button class="number-btn" onclick="placeBet(3)">3</button>
-    <button class="number-btn" onclick="placeBet(4)">4</button>
-    <button class="number-btn" onclick="placeBet(5)">5</button>
-    <button class="number-btn" onclick="placeBet(6)">6</button>
-    <button class="number-btn" onclick="placeBet(7)">7</button>
-    <button class="number-btn" onclick="placeBet(8)">8</button>
-    <button class="number-btn" onclick="placeBet(9)">9</button>
-  </div>
-  <div class="result" id="result"></div>
-  <div class="history">
-    <h3>Last 5 Draws</h3>
-    <ul id="history" class="history-list"></ul>
+
+  <div id="game" class="hidden">
+    <p>👤 Welcome <span id="username"></span> | 📞 <span id="userphone"></span></p>
+    <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
+    <input type="number" id="topup" placeholder="Amount">
+    <button onclick="addMoney()">Add Money</button>
+    <h4>Choose a color or number (min ₹30 required)</h4>
+    <div>
+      <button class="button green" onclick="placeBet('Green')">Green</button>
+      <button class="button violet" onclick="placeBet('Violet')">Violet</button>
+      <button class="button red" onclick="placeBet('Red')">Red</button>
+    </div>
+    <div>
+      <button class="number-btn" onclick="placeBet(0)">0</button>
+      <button class="number-btn" onclick="placeBet(1)">1</button>
+      <button class="number-btn" onclick="placeBet(2)">2</button>
+      <button class="number-btn" onclick="placeBet(3)">3</button>
+      <button class="number-btn" onclick="placeBet(4)">4</button>
+      <button class="number-btn" onclick="placeBet(5)">5</button>
+      <button class="number-btn" onclick="placeBet(6)">6</button>
+      <button class="number-btn" onclick="placeBet(7)">7</button>
+      <button class="number-btn" onclick="placeBet(8)">8</button>
+      <button class="number-btn" onclick="placeBet(9)">9</button>
+    </div>
+    <p id="status"></p>
+    <button onclick="logout()">Logout</button>
   </div>
 
   <script>
-    let balance = 100;
-    let countdown = 60;
-    let timerInterval;
-    let currentBet = null;
-    const resultEl = document.getElementById('result');
-    const balanceEl = document.getElementById('balance');
-    const timerEl = document.getElementById('timer');
-    const historyEl = document.getElementById('history');
-    let history = [];
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let userRef, userData, user;
 
-    function updateBalance() {
-      balanceEl.textContent = `Wallet Balance: ₹${balance}`;
+    function loginWithGoogle() {
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(handleLogin);
     }
 
-    function updateTimer() {
-      timerEl.textContent = `Next Draw In: ${countdown}s`;
-    }
-
-    function updateHistory() {
-      historyEl.innerHTML = '';
-      history.slice(-5).reverse().forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'history-item';
-        li.textContent = `Draw: ${item.number} → Result: ${item.result} (₹${item.change})`;
-        historyEl.appendChild(li);
+    function sendOTP() {
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container');
+      const phone = document.getElementById("phone").value;
+      auth.signInWithPhoneNumber(phone, window.recaptchaVerifier).then(confirm => {
+        window.confirmationResult = confirm;
+        alert("OTP Sent");
       });
     }
 
+    function verifyOTP() {
+      const code = document.getElementById("otp").value;
+      window.confirmationResult.confirm(code).then(handleLogin);
+    }
+
+    function handleLogin(result) {
+      user = result.user;
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("game").classList.remove("hidden");
+      document.getElementById("username").innerText = user.displayName || "Phone User";
+      document.getElementById("userphone").innerText = user.phoneNumber || user.email;
+      userRef = db.collection("users").doc(user.uid);
+      userRef.get().then(doc => {
+        if (!doc.exists) return userRef.set({ balance: 100 });
+      }).then(() => {
+        return userRef.get();
+      }).then(doc => {
+        userData = doc.data();
+        document.getElementById("wallet").innerText = userData.balance;
+      });
+    }
+
+    function addMoney() {
+      const amt = parseInt(document.getElementById("topup").value);
+      if (amt > 0) {
+        userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) }).then(() => {
+          alert("₹" + amt + " added");
+          return userRef.get();
+        }).then(doc => {
+          userData = doc.data();
+          document.getElementById("wallet").innerText = userData.balance;
+        });
+      }
+    }
+
     function placeBet(choice) {
-      if (balance < 30) {
-        resultEl.textContent = '⚠️ You need at least ₹30 to bet.';
-        return;
-      }
-      currentBet = choice;
-      resultEl.textContent = `✅ Bet placed on: ${choice}`;
-    }
-
-    function startTimer() {
-      timerInterval = setInterval(() => {
-        countdown--;
-        updateTimer();
-        if (countdown <= 0) {
-          clearInterval(timerInterval);
-          resolveBet();
-          countdown = 60;
-          updateTimer();
-          startTimer();
+      userRef.get().then(doc => {
+        const balance = doc.data().balance;
+        if (balance < 30) {
+          document.getElementById("status").innerText = "❌ Min ₹30 required to play.";
+          return;
         }
-      }, 1000);
-    }
+        const number = Math.floor(Math.random() * 10);
+        let result = "LOST", winAmount = 0;
 
-    function resolveBet() {
-      const number = Math.floor(Math.random() * 10);
-      let systemColor = '';
-
-      if ([1, 3, 7, 9].includes(number)) systemColor = 'Green';
-      else if ([2, 4, 6, 8].includes(number)) systemColor = 'Red';
-      else if ([0, 5].includes(number)) systemColor = 'Violet';
-
-      let change = 0;
-      let outcome = 'LOST';
-
-      if (currentBet !== null) {
-        if (typeof currentBet === 'number' && currentBet === number) {
-          change = 80; // 8X payout
-          balance += change;
-          outcome = 'WON (Exact Number)';
-        } else if (currentBet === 'Green' && [1, 3, 7, 9].includes(number)) {
-          change = 20;
-          balance += change;
-          outcome = 'WON (2X)';
-        } else if (currentBet === 'Red' && [2, 4, 6, 8].includes(number)) {
-          change = 20;
-          balance += change;
-          outcome = 'WON (2X)';
-        } else if (currentBet === 'Violet' && [0, 5].includes(number)) {
-          change = 40;
-          balance += change;
-          outcome = 'WON (4X)';
+        if (typeof choice === 'number' && choice === number) {
+          result = "WON 8X"; winAmount = 80;
+        } else if (choice === 'Green' && [1,3,7,9].includes(number)) {
+          result = "WON 2X"; winAmount = 20;
+        } else if (choice === 'Red' && [2,4,6,8].includes(number)) {
+          result = "WON 2X"; winAmount = 20;
+        } else if (choice === 'Violet' && [0,5].includes(number)) {
+          result = "WON 4X"; winAmount = 40;
         } else {
-          balance -= 10;
-          change = -10;
-          outcome = 'LOST';
+          winAmount = -10;
         }
-        history.push({ number, result: outcome, change });
-        updateBalance();
-        updateHistory();
-        resultEl.textContent = `🎯 Draw Number: ${number} → ${outcome}. Wallet Updated.`;
-        currentBet = null;
-      } else {
-        resultEl.textContent = '⏳ No bet placed this round.';
-      }
+
+        userRef.update({ balance: firebase.firestore.FieldValue.increment(winAmount) });
+        db.collection("users").doc(user.uid).collection("transactions").add({
+          type: "BET", choice, number, result, amount: winAmount, time: new Date()
+        });
+        document.getElementById("wallet").innerText = balance + winAmount;
+        document.getElementById("status").innerText = `🎯 Draw: ${number}, ${result}, Wallet Change: ₹${winAmount}`;
+      });
     }
 
-    updateBalance();
-    updateTimer();
-    updateHistory();
-    startTimer();
+    function logout() {
+      auth.signOut();
+      location.reload();
+    }
   </script>
 </body>
 </html>
