@@ -6,12 +6,17 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f0f0;
+      background: #f8f8f8;
       text-align: center;
-      padding: 50px;
+      padding: 30px;
     }
     .balance {
       font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .timer {
+      font-size: 20px;
+      color: #d9534f;
       margin-bottom: 20px;
     }
     button {
@@ -24,6 +29,22 @@
     }
     .red { background-color: crimson; color: white; }
     .green { background-color: forestgreen; color: white; }
+    .violet { background-color: purple; color: white; }
+    .numbers {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 300px;
+      margin: 0 auto 20px;
+    }
+    .number-btn {
+      width: 60px;
+      height: 60px;
+      font-size: 22px;
+      margin: 5px;
+      background: #ddd;
+      border-radius: 8px;
+    }
     .result, .history {
       font-size: 20px;
       margin-top: 20px;
@@ -40,68 +61,129 @@
 <body>
   <h1>Color Prediction Game</h1>
   <div class="balance" id="balance">Wallet Balance: ₹100</div>
+  <div class="timer" id="timer">Next Draw In: 60s</div>
   <div>
-    <button class="red" onclick="play('Red')">I Choose Red</button>
-    <button class="green" onclick="play('Green')">I Choose Green</button>
+    <button class="green" onclick="placeBet('Green')">Join Green</button>
+    <button class="violet" onclick="placeBet('Violet')">Join Violet</button>
+    <button class="red" onclick="placeBet('Red')">Join Red</button>
+  </div>
+  <div class="numbers">
+    <button class="number-btn" onclick="placeBet(0)">0</button>
+    <button class="number-btn" onclick="placeBet(1)">1</button>
+    <button class="number-btn" onclick="placeBet(2)">2</button>
+    <button class="number-btn" onclick="placeBet(3)">3</button>
+    <button class="number-btn" onclick="placeBet(4)">4</button>
+    <button class="number-btn" onclick="placeBet(5)">5</button>
+    <button class="number-btn" onclick="placeBet(6)">6</button>
+    <button class="number-btn" onclick="placeBet(7)">7</button>
+    <button class="number-btn" onclick="placeBet(8)">8</button>
+    <button class="number-btn" onclick="placeBet(9)">9</button>
   </div>
   <div class="result" id="result"></div>
   <div class="history">
-    <h3>Last 5 Predictions</h3>
+    <h3>Last 5 Draws</h3>
     <ul id="history" class="history-list"></ul>
   </div>
 
   <script>
     let balance = 100;
+    let countdown = 60;
+    let timerInterval;
+    let currentBet = null;
     const resultEl = document.getElementById('result');
     const balanceEl = document.getElementById('balance');
+    const timerEl = document.getElementById('timer');
     const historyEl = document.getElementById('history');
     let history = [];
 
-    function updateBalanceDisplay() {
+    function updateBalance() {
       balanceEl.textContent = `Wallet Balance: ₹${balance}`;
     }
 
-    function updateHistoryDisplay() {
+    function updateTimer() {
+      timerEl.textContent = `Next Draw In: ${countdown}s`;
+    }
+
+    function updateHistory() {
       historyEl.innerHTML = '';
-      history.slice(-5).reverse().forEach(entry => {
+      history.slice(-5).reverse().forEach(item => {
         const li = document.createElement('li');
         li.className = 'history-item';
-        li.textContent = `You chose ${entry.userChoice}, System: ${entry.systemChoice} → ${entry.result} (₹${entry.change})`;
+        li.textContent = `Draw: ${item.number} → Result: ${item.result} (₹${item.change})`;
         historyEl.appendChild(li);
       });
     }
 
-    function play(choice) {
+    function placeBet(choice) {
       if (balance < 30) {
-        resultEl.textContent = '⚠️ You need at least ₹30 in your wallet to play.';
+        resultEl.textContent = '⚠️ You need at least ₹30 to bet.';
         return;
       }
-
-      const colors = ['Red', 'Green'];
-      const systemChoice = colors[Math.floor(Math.random() * colors.length)];
-      let message = `You chose ${choice}. System chose ${systemChoice}.\n`;
-      let result = '';
-      let change = 0;
-
-      if (choice === systemChoice) {
-        balance += 8; // ₹8 profit
-        result = 'WON';
-        change = '+8';
-        message += '🎉 You WON! ₹8 has been added to your wallet.';
-      } else {
-        balance -= 10;
-        result = 'LOST';
-        change = '-10';
-        message += '😞 You LOST! ₹10 has been deducted from your wallet.';
-      }
-
-      history.push({ userChoice: choice, systemChoice, result, change });
-      updateBalanceDisplay();
-      updateHistoryDisplay();
-      resultEl.textContent = message;
+      currentBet = choice;
+      resultEl.textContent = `✅ Bet placed on: ${choice}`;
     }
 
-    updateBalanceDisplay();
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        countdown--;
+        updateTimer();
+        if (countdown <= 0) {
+          clearInterval(timerInterval);
+          resolveBet();
+          countdown = 60;
+          updateTimer();
+          startTimer();
+        }
+      }, 1000);
+    }
+
+    function resolveBet() {
+      const number = Math.floor(Math.random() * 10);
+      let systemColor = '';
+
+      if ([1, 3, 7, 9].includes(number)) systemColor = 'Green';
+      else if ([2, 4, 6, 8].includes(number)) systemColor = 'Red';
+      else if ([0, 5].includes(number)) systemColor = 'Violet';
+
+      let change = 0;
+      let outcome = 'LOST';
+
+      if (currentBet !== null) {
+        if (typeof currentBet === 'number' && currentBet === number) {
+          change = 80; // 8X payout
+          balance += change;
+          outcome = 'WON (Exact Number)';
+        } else if (currentBet === 'Green' && [1, 3, 7, 9].includes(number)) {
+          change = 20;
+          balance += change;
+          outcome = 'WON (2X)';
+        } else if (currentBet === 'Red' && [2, 4, 6, 8].includes(number)) {
+          change = 20;
+          balance += change;
+          outcome = 'WON (2X)';
+        } else if (currentBet === 'Violet' && [0, 5].includes(number)) {
+          change = 40;
+          balance += change;
+          outcome = 'WON (4X)';
+        } else {
+          balance -= 10;
+          change = -10;
+          outcome = 'LOST';
+        }
+        history.push({ number, result: outcome, change });
+        updateBalance();
+        updateHistory();
+        resultEl.textContent = `🎯 Draw Number: ${number} → ${outcome}. Wallet Updated.`;
+        currentBet = null;
+      } else {
+        resultEl.textContent = '⏳ No bet placed this round.';
+      }
+    }
+
+    updateBalance();
+    updateTimer();
+    updateHistory();
+    startTimer();
   </script>
 </body>
 </html>
