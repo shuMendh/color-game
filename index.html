@@ -16,7 +16,7 @@
     .violet { background: purple; color: white; }
     .menu-bar { position: absolute; top: 10px; right: 20px; }
     #timer { font-weight: bold; color: red; margin-top: 10px; font-size: 20px; }
-    table { margin: 20px auto; border-collapse: collapse; width: 90%; max-width: 500px; }
+    table { margin: 20px auto; border-collapse: collapse; width: 90%; max-width: 600px; }
     th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
     th { background: #f0f0f0; }
   </style>
@@ -29,6 +29,7 @@
       <option value="game">🎮 Play Game</option>
       <option value="wallet">💰 Wallet</option>
       <option value="account">👤 Account</option>
+      <option value="transaction">📜 Transaction History</option>
     </select>
   </div>
 
@@ -54,7 +55,19 @@
       <button onclick="addMoney()">Add Money</button>
     </div>
 
+    <div id="transactionSection" class="hidden">
+      <h3>📜 Your Transactions</h3>
+      <table>
+        <thead>
+          <tr><th>Choice</th><th>System</th><th>Result</th><th>Amount</th><th>Time</th></tr>
+        </thead>
+        <tbody id="txnBody"></tbody>
+      </table>
+      <button onclick="loadMore()">Next Page</button>
+    </div>
+
     <div id="gameSection">
+      <h3>💼 Current Wallet: ₹<span id="walletInline">0</span></h3>
       <h4>Choose a color (min ₹30 required)</h4>
       <div>
         <button class="button green" onclick="placeBet('Green')">Green</button>
@@ -64,7 +77,7 @@
       <p id="status"></p>
       <p id="timer">✅ You can place your next bet now</p>
 
-      <table id="historyTable">
+      <table>
         <thead>
           <tr>
             <th>Your Choice</th>
@@ -98,6 +111,7 @@
     const db = firebase.firestore();
     let userRef, user, userName, betLock = false;
     const history = [];
+    let lastVisibleTxn = null;
 
     function sendOTP() {
       const phoneInput = document.getElementById("phone");
@@ -129,7 +143,9 @@
       userRef.get().then(doc => {
         if (!doc.exists) return userRef.set({ name: userName, phone: user.phoneNumber, balance: 100 });
       }).then(() => userRef.get()).then(doc => {
-        document.getElementById("wallet").innerText = doc.data().balance;
+        const bal = doc.data().balance;
+        document.getElementById("wallet").innerText = bal;
+        document.getElementById("walletInline").innerText = bal;
       });
     }
 
@@ -139,7 +155,9 @@
         userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) }).then(() => {
           return userRef.get();
         }).then(doc => {
-          document.getElementById("wallet").innerText = doc.data().balance;
+          const bal = doc.data().balance;
+          document.getElementById("wallet").innerText = bal;
+          document.getElementById("walletInline").innerText = bal;
         });
       }
     }
@@ -177,13 +195,16 @@
         }
 
         const newBalance = balance + winAmount;
+        const txnTime = new Date().toLocaleString();
+
         userRef.update({ balance: newBalance });
         db.collection("users").doc(user.uid).collection("transactions").add({
-          type: "BET", choice: selectedColor, systemChoice, result, amount: winAmount, time: new Date()
+          type: "BET", choice: selectedColor, systemChoice, result, amount: winAmount, time: txnTime
         });
 
         document.getElementById("wallet").innerText = newBalance;
-        document.getElementById("status").innerText = `🎯 You chose: ${selectedColor}, System chose: ${systemChoice} → ${result}`;
+        document.getElementById("walletInline").innerText = newBalance;
+        document.getElementById("status").innerText = `🎯 You chose: ${selectedColor}, System: ${systemChoice} → ${result}`;
         history.unshift({ choice: selectedColor, systemChoice, result, winAmount, balance: newBalance });
         if (history.length > 5) history.pop();
         updateHistoryTable();
@@ -204,13 +225,40 @@
       });
     }
 
+    function loadMore() {
+      let query = db.collection("users").doc(user.uid).collection("transactions")
+        .orderBy("time", "desc").limit(5);
+
+      if (lastVisibleTxn) query = query.startAfter(lastVisibleTxn);
+
+      query.get().then(snapshot => {
+        const tbody = document.getElementById("txnBody");
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${data.choice}</td>
+            <td>${data.systemChoice}</td>
+            <td>${data.result}</td>
+            <td>${data.amount}</td>
+            <td>${data.time}</td>`;
+          tbody.appendChild(row);
+        });
+        if (snapshot.docs.length > 0) {
+          lastVisibleTxn = snapshot.docs[snapshot.docs.length - 1];
+        }
+      });
+    }
+
     function logout() {
       auth.signOut().then(() => location.reload());
     }
 
     function handleMenu() {
-      document.getElementById("walletSection").style.display = (menu.value === "wallet") ? "block" : "none";
-      document.getElementById("gameSection").style.display = (menu.value === "game") ? "block" : "none";
+      const section = document.getElementById("menu").value;
+      document.getElementById("walletSection").style.display = section === "wallet" ? "block" : "none";
+      document.getElementById("gameSection").style.display = section === "game" ? "block" : "none";
+      document.getElementById("transactionSection").style.display = section === "transaction" ? "block" : "none";
     }
   </script>
 </body>
