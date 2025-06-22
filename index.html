@@ -16,6 +16,7 @@
     .violet { background: purple; color: white; }
     .number-btn { width: 60px; height: 60px; margin: 5px; font-size: 20px; }
     .menu-bar { position: absolute; top: 10px; right: 20px; }
+    #timer { font-weight: bold; color: red; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -78,6 +79,7 @@
         <button class="number-btn" onclick="placeBet(9)">9</button>
       </div>
       <p id="status"></p>
+      <p id="timer" class="hidden">⏳ Next bet available in <span id="countdown">10</span>s</p>
     </div>
     <button onclick="logout()">Logout</button>
   </div>
@@ -160,7 +162,7 @@
     }
 
     function placeBet(choice) {
-      if (betLock) return alert("⏳ Wait 10 seconds for next bet.");
+      if (betLock) return alert("⏳ Wait for next bet.");
       userRef.get().then(doc => {
         let balance = doc.data().balance;
         if (balance < 30) {
@@ -168,7 +170,19 @@
           return;
         }
         betLock = true;
-        setTimeout(() => betLock = false, 10000);
+        let timeLeft = 10;
+        document.getElementById("timer").classList.remove("hidden");
+        document.getElementById("countdown").innerText = timeLeft;
+
+        const timerInterval = setInterval(() => {
+          timeLeft--;
+          document.getElementById("countdown").innerText = timeLeft;
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            betLock = false;
+            document.getElementById("timer").classList.add("hidden");
+          }
+        }, 1000);
 
         const number = Math.floor(Math.random() * 10);
         let result = "LOST", winAmount = 0;
