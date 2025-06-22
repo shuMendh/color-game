@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Color Game with Wallet</title>
+  <meta charset="UTF-8" />
+  <title>Color Prediction Game</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: Arial; text-align: center; padding: 30px; }
+    body { font-family: Arial; text-align: center; padding: 30px; background: #f9f9f9; }
     input, button { margin: 8px; padding: 10px; font-size: 16px; }
     .hidden { display: none; }
     .button { padding: 12px 25px; margin: 10px; font-size: 16px; cursor: pointer; border-radius: 8px; }
@@ -18,22 +18,20 @@
   </style>
 </head>
 <body>
-  <h2>Color Prediction Game</h2>
+  <h2>🎯 Color Prediction Game</h2>
   <div id="login">
-    <button onclick="loginWithGoogle()">Login with Google</button>
-    <div>
-      <input type="text" id="phone" placeholder="Enter phone +91...">
-      <button onclick="sendOTP()">Send OTP</button>
-      <input type="text" id="otp" placeholder="Enter OTP">
-      <button onclick="verifyOTP()">Verify OTP</button>
-    </div>
+    <button onclick="loginWithGoogle()">Login with Google</button><br />
+    <input type="text" id="phone" placeholder="Enter phone +91...">
+    <button onclick="sendOTP()">Send OTP</button><br />
+    <input type="text" id="otp" placeholder="Enter OTP">
+    <button onclick="verifyOTP()">Verify OTP</button>
     <div id="recaptcha-container"></div>
   </div>
 
   <div id="game" class="hidden">
     <p>👤 Welcome <span id="username"></span> | 📞 <span id="userphone"></span></p>
     <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
-    <input type="number" id="topup" placeholder="Amount">
+    <input type="number" id="topup" placeholder="Amount to Add">
     <button onclick="addMoney()">Add Money</button>
     <h4>Choose a color or number (min ₹30 required)</h4>
     <div>
@@ -58,57 +56,47 @@
   </div>
 
   <script>
-   // Import the functions you need from the SDKs you need
-// import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnA3CY0FHyjli9oyEaFRp7Wp__5Z9vObk",
+      authDomain: "shubh251625.firebaseapp.com",
+      projectId: "shubh251625",
+      storageBucket: "shubh251625.firebasestorage.app",
+      messagingSenderId: "541512766925",
+      appId: "1:541512766925:web:eca74693e7626b8e496084"
+    };
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDsfZw3EsarePJC8QZzfSUwipKL9rlp9Oo",
-  authDomain: "shubhprediction.netlify.app",
-  projectId: "colorgameapp-7b014",
-  storageBucket: "colorgameapp-7b014.firebasestorage.app",
-  messagingSenderId: "969064571113",
-  appId: "1:969064571113:web:b943a5036545038cd41078"
-};
-
-// Initialize Firebase
-// const app = initializeApp(firebaseConfig);
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    let userRef, userData, user;
+    let userRef, user;
 
     function loginWithGoogle() {
       auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(handleLogin);
     }
 
     function sendOTP() {
-  const phone = document.getElementById("phone").value;
+      const phone = document.getElementById("phone").value;
 
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      'size': 'normal',
-      'callback': function(response) {
-        // reCAPTCHA solved
-      },
-      'expired-callback': function() {
-        alert('reCAPTCHA expired. Try again.');
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+          size: 'normal',
+          callback: (response) => {},
+          'expired-callback': () => { alert("reCAPTCHA expired. Try again."); }
+        });
+        window.recaptchaVerifier.render();
       }
-    });
-    window.recaptchaVerifier.render(); // this line is important
-  }
 
-  auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
-    .then(confirm => {
-      window.confirmationResult = confirm;
-      alert("OTP sent successfully!");
-    }).catch(error => {
-      alert("Error sending OTP: " + error.message);
-      console.error(error);
-    });
-}
+      const appVerifier = window.recaptchaVerifier;
+
+      auth.signInWithPhoneNumber(phone, appVerifier)
+        .then(confirmationResult => {
+          window.confirmationResult = confirmationResult;
+          alert("OTP sent!");
+        })
+        .catch(error => {
+          alert("Error sending OTP: " + error.message);
+        });
+    }
 
     function verifyOTP() {
       const code = document.getElementById("otp").value;
@@ -127,8 +115,7 @@ const firebaseConfig = {
       }).then(() => {
         return userRef.get();
       }).then(doc => {
-        userData = doc.data();
-        document.getElementById("wallet").innerText = userData.balance;
+        document.getElementById("wallet").innerText = doc.data().balance;
       });
     }
 
@@ -139,17 +126,16 @@ const firebaseConfig = {
           alert("₹" + amt + " added");
           return userRef.get();
         }).then(doc => {
-          userData = doc.data();
-          document.getElementById("wallet").innerText = userData.balance;
+          document.getElementById("wallet").innerText = doc.data().balance;
         });
       }
     }
 
     function placeBet(choice) {
       userRef.get().then(doc => {
-        const balance = doc.data().balance;
+        let balance = doc.data().balance;
         if (balance < 30) {
-          document.getElementById("status").innerText = "❌ Min ₹30 required to play.";
+          document.getElementById("status").innerText = "❌ Minimum ₹30 needed.";
           return;
         }
         const number = Math.floor(Math.random() * 10);
@@ -172,7 +158,7 @@ const firebaseConfig = {
           type: "BET", choice, number, result, amount: winAmount, time: new Date()
         });
         document.getElementById("wallet").innerText = balance + winAmount;
-        document.getElementById("status").innerText = `🎯 Draw: ${number}, ${result}, Wallet Change: ₹${winAmount}`;
+        document.getElementById("status").innerText = `🎯 Draw: ${number}, ${result} | Wallet: ₹${balance + winAmount}`;
       });
     }
 
