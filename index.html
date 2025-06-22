@@ -58,11 +58,23 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-    };
+   // Import the functions you need from the SDKs you need
+// import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDsfZw3EsarePJC8QZzfSUwipKL9rlp9Oo",
+  authDomain: "colorgameapp-7b014.firebaseapp.com",
+  projectId: "colorgameapp-7b014",
+  storageBucket: "colorgameapp-7b014.firebasestorage.app",
+  messagingSenderId: "969064571113",
+  appId: "1:969064571113:web:b943a5036545038cd41078"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
