@@ -8,19 +8,35 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
     body { font-family: Arial; text-align: center; padding: 30px; background: #f9f9f9; }
-    input, button { margin: 8px; padding: 10px; font-size: 16px; }
+    input, button, select { margin: 8px; padding: 10px; font-size: 16px; }
     .hidden { display: none; }
     .button { padding: 12px 25px; margin: 10px; font-size: 16px; cursor: pointer; border-radius: 8px; }
     .green { background: forestgreen; color: white; }
     .red { background: crimson; color: white; }
     .violet { background: purple; color: white; }
     .number-btn { width: 60px; height: 60px; margin: 5px; font-size: 20px; }
+    .menu-bar { position: absolute; top: 10px; right: 20px; }
   </style>
 </head>
 <body>
   <h2>🎯 Color Prediction Game</h2>
+
+  <div class="menu-bar">
+    <select id="menu" onchange="handleMenu()">
+      <option value="game">🎮 Play Game</option>
+      <option value="wallet">💰 Wallet</option>
+      <option value="account">👤 Account</option>
+    </select>
+  </div>
+
   <div id="login">
-    <button onclick="loginWithGoogle()">Login with Google</button><br />
+    <input type="text" id="usernameInput" placeholder="Enter your name"><br />
+    <select id="testNumbers">
+      <option value="">-- Select Test Number --</option>
+      <option value="+919999999999">+91 99999 99999 (OTP: 123456)</option>
+      <option value="+919888888888">+91 98888 88888 (OTP: 111111)</option>
+      <option value="+917777777777">+91 77777 77777 (OTP: 222222)</option>
+    </select><br />
     <input type="text" id="phone" placeholder="Enter phone +91...">
     <button onclick="sendOTP()">Send OTP</button><br />
     <input type="text" id="otp" placeholder="Enter OTP">
@@ -30,28 +46,39 @@
 
   <div id="game" class="hidden">
     <p>👤 Welcome <span id="username"></span> | 📞 <span id="userphone"></span></p>
-    <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
-    <input type="number" id="topup" placeholder="Amount to Add">
-    <button onclick="addMoney()">Add Money</button>
-    <h4>Choose a color or number (min ₹30 required)</h4>
-    <div>
-      <button class="button green" onclick="placeBet('Green')">Green</button>
-      <button class="button violet" onclick="placeBet('Violet')">Violet</button>
-      <button class="button red" onclick="placeBet('Red')">Red</button>
+    <div id="accountSection" class="hidden">
+      <h3>Account Details</h3>
+      <p>Name: <span id="displayName"></span></p>
+      <p>Phone: <span id="displayPhone"></span></p>
     </div>
-    <div>
-      <button class="number-btn" onclick="placeBet(0)">0</button>
-      <button class="number-btn" onclick="placeBet(1)">1</button>
-      <button class="number-btn" onclick="placeBet(2)">2</button>
-      <button class="number-btn" onclick="placeBet(3)">3</button>
-      <button class="number-btn" onclick="placeBet(4)">4</button>
-      <button class="number-btn" onclick="placeBet(5)">5</button>
-      <button class="number-btn" onclick="placeBet(6)">6</button>
-      <button class="number-btn" onclick="placeBet(7)">7</button>
-      <button class="number-btn" onclick="placeBet(8)">8</button>
-      <button class="number-btn" onclick="placeBet(9)">9</button>
+
+    <div id="walletSection" class="hidden">
+      <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
+      <input type="number" id="topup" placeholder="Amount to Add">
+      <button onclick="addMoney()">Add Money</button>
     </div>
-    <p id="status"></p>
+
+    <div id="gameSection">
+      <h4>Choose a color or number (min ₹30 required)</h4>
+      <div>
+        <button class="button green" onclick="placeBet('Green')">Green</button>
+        <button class="button violet" onclick="placeBet('Violet')">Violet</button>
+        <button class="button red" onclick="placeBet('Red')">Red</button>
+      </div>
+      <div>
+        <button class="number-btn" onclick="placeBet(0)">0</button>
+        <button class="number-btn" onclick="placeBet(1)">1</button>
+        <button class="number-btn" onclick="placeBet(2)">2</button>
+        <button class="number-btn" onclick="placeBet(3)">3</button>
+        <button class="number-btn" onclick="placeBet(4)">4</button>
+        <button class="number-btn" onclick="placeBet(5)">5</button>
+        <button class="number-btn" onclick="placeBet(6)">6</button>
+        <button class="number-btn" onclick="placeBet(7)">7</button>
+        <button class="number-btn" onclick="placeBet(8)">8</button>
+        <button class="number-btn" onclick="placeBet(9)">9</button>
+      </div>
+      <p id="status"></p>
+    </div>
     <button onclick="logout()">Logout</button>
   </div>
 
@@ -68,34 +95,33 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    let userRef, user;
-
-    function loginWithGoogle() {
-      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(handleLogin);
-    }
+    let userRef, user, userName, betLock = false;
 
     function sendOTP() {
-      const phone = document.getElementById("phone").value;
+      const selectedNumber = document.getElementById("testNumbers").value;
+      const phoneInput = document.getElementById("phone");
+      if (selectedNumber) phoneInput.value = selectedNumber;
+      userName = document.getElementById("usernameInput").value;
+      if (!userName || !phoneInput.value) return alert("Enter your name and phone number");
+
+      const phone = phoneInput.value;
 
       if (!window.recaptchaVerifier) {
         window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
           size: 'normal',
-          callback: (response) => {},
-          'expired-callback': () => { alert("reCAPTCHA expired. Try again."); }
+          callback: () => {},
+          'expired-callback': () => alert("reCAPTCHA expired. Try again.")
         });
         window.recaptchaVerifier.render();
       }
 
       const appVerifier = window.recaptchaVerifier;
-
       auth.signInWithPhoneNumber(phone, appVerifier)
-        .then(confirmationResult => {
-          window.confirmationResult = confirmationResult;
+        .then(confirm => {
+          window.confirmationResult = confirm;
           alert("OTP sent!");
         })
-        .catch(error => {
-          alert("Error sending OTP: " + error.message);
-        });
+        .catch(error => alert("Error: " + error.message));
     }
 
     function verifyOTP() {
@@ -107,14 +133,16 @@
       user = result.user;
       document.getElementById("login").classList.add("hidden");
       document.getElementById("game").classList.remove("hidden");
-      document.getElementById("username").innerText = user.displayName || "Phone User";
-      document.getElementById("userphone").innerText = user.phoneNumber || user.email;
+
+      document.getElementById("username").innerText = userName;
+      document.getElementById("userphone").innerText = user.phoneNumber;
+      document.getElementById("displayName").innerText = userName;
+      document.getElementById("displayPhone").innerText = user.phoneNumber;
+
       userRef = db.collection("users").doc(user.uid);
       userRef.get().then(doc => {
-        if (!doc.exists) return userRef.set({ balance: 100 });
-      }).then(() => {
-        return userRef.get();
-      }).then(doc => {
+        if (!doc.exists) return userRef.set({ name: userName, phone: user.phoneNumber, balance: 100 });
+      }).then(() => userRef.get()).then(doc => {
         document.getElementById("wallet").innerText = doc.data().balance;
       });
     }
@@ -132,12 +160,16 @@
     }
 
     function placeBet(choice) {
+      if (betLock) return alert("⏳ Wait 10 seconds for next bet.");
       userRef.get().then(doc => {
         let balance = doc.data().balance;
         if (balance < 30) {
           document.getElementById("status").innerText = "❌ Minimum ₹30 needed.";
           return;
         }
+        betLock = true;
+        setTimeout(() => betLock = false, 10000);
+
         const number = Math.floor(Math.random() * 10);
         let result = "LOST", winAmount = 0;
 
@@ -165,6 +197,13 @@
     function logout() {
       auth.signOut();
       location.reload();
+    }
+
+    function handleMenu() {
+      const section = document.getElementById("menu").value;
+      document.getElementById("gameSection").style.display = section === "game" ? "block" : "none";
+      document.getElementById("walletSection").style.display = section === "wallet" ? "block" : "none";
+      document.getElementById("accountSection").style.display = section === "account" ? "block" : "none";
     }
   </script>
 </body>
