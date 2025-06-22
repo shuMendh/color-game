@@ -24,48 +24,84 @@
     }
     .red { background-color: crimson; color: white; }
     .green { background-color: forestgreen; color: white; }
-    .result {
-      font-size: 22px;
-      margin-top: 30px;
+    .result, .history {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+    .history-list {
+      list-style: none;
+      padding: 0;
+    }
+    .history-item {
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
   <h1>Color Prediction Game</h1>
-  <div class="balance" id="balance">Balance: ₹100</div>
+  <div class="balance" id="balance">Wallet Balance: ₹100</div>
   <div>
     <button class="red" onclick="play('Red')">I Choose Red</button>
     <button class="green" onclick="play('Green')">I Choose Green</button>
   </div>
   <div class="result" id="result"></div>
+  <div class="history">
+    <h3>Last 5 Predictions</h3>
+    <ul id="history" class="history-list"></ul>
+  </div>
 
   <script>
     let balance = 100;
     const resultEl = document.getElementById('result');
     const balanceEl = document.getElementById('balance');
+    const historyEl = document.getElementById('history');
+    let history = [];
+
+    function updateBalanceDisplay() {
+      balanceEl.textContent = `Wallet Balance: ₹${balance}`;
+    }
+
+    function updateHistoryDisplay() {
+      historyEl.innerHTML = '';
+      history.slice(-5).reverse().forEach(entry => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.textContent = `You chose ${entry.userChoice}, System: ${entry.systemChoice} → ${entry.result} (₹${entry.change})`;
+        historyEl.appendChild(li);
+      });
+    }
 
     function play(choice) {
-      if (balance < 10) {
-        resultEl.textContent = 'Insufficient balance to play.';
+      if (balance < 30) {
+        resultEl.textContent = '⚠️ You need at least ₹30 in your wallet to play.';
         return;
       }
 
       const colors = ['Red', 'Green'];
       const systemChoice = colors[Math.floor(Math.random() * colors.length)];
-
       let message = `You chose ${choice}. System chose ${systemChoice}.\n`;
+      let result = '';
+      let change = 0;
 
       if (choice === systemChoice) {
         balance += 8; // ₹8 profit
-        message += '🎉 You WON! ₹8 added.';
+        result = 'WON';
+        change = '+8';
+        message += '🎉 You WON! ₹8 has been added to your wallet.';
       } else {
         balance -= 10;
-        message += '😞 You LOST! ₹10 deducted.';
+        result = 'LOST';
+        change = '-10';
+        message += '😞 You LOST! ₹10 has been deducted from your wallet.';
       }
 
-      balanceEl.textContent = `Balance: ₹${balance}`;
+      history.push({ userChoice: choice, systemChoice, result, change });
+      updateBalanceDisplay();
+      updateHistoryDisplay();
       resultEl.textContent = message;
     }
+
+    updateBalanceDisplay();
   </script>
 </body>
 </html>
