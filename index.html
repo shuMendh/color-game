@@ -1,265 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Color Prediction Game</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>ShuGar Customization</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial; text-align: center; padding: 30px; background: #f9f9f9; }
-    input, button, select { margin: 8px; padding: 10px; font-size: 16px; }
-    .hidden { display: none; }
-    .button { padding: 12px 25px; margin: 10px; font-size: 16px; cursor: pointer; border-radius: 8px; }
-    .green { background: forestgreen; color: white; }
-    .red { background: crimson; color: white; }
-    .violet { background: purple; color: white; }
-    .menu-bar { position: absolute; top: 10px; right: 20px; }
-    #timer { font-weight: bold; color: red; margin-top: 10px; font-size: 20px; }
-    table { margin: 20px auto; border-collapse: collapse; width: 90%; max-width: 600px; }
-    th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
-    th { background: #f0f0f0; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f8f4ef url('https://i.imgur.com/bAUM2Wv.jpg') no-repeat center;
+      background-size: cover;
+      color: #333;
+    }
+    header {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    header img {
+      max-width: 280px;
+      height: auto;
+    }
+    h2 {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      padding: 40px;
+    }
+    .card {
+      background: #fffaf4;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .card h3 {
+      margin: 15px 0 5px;
+    }
+    .card p {
+      font-size: 15px;
+      margin: 5px 0;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #f2ede5;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <h2>🎯 Color Prediction Game</h2>
 
-  <div class="menu-bar">
-    <select id="menu" onchange="handleMenu()">
-      <option value="game">🎮 Play Game</option>
-      <option value="wallet">💰 Wallet</option>
-      <option value="account">👤 Account</option>
-      <option value="transaction">📜 Transaction History</option>
-    </select>
+<header>
+  <img src="https://uploadthing.com/f/40124e2a-27c7-4c2a-b9b2-35ae00436d06_shugar-logo.png" alt="ShuGar Logo">
+</header>
+
+<h2>🪵 Our Custom Wooden Picks</h2>
+<div class="container">
+
+  <div class="card">
+    <img src="https://i.imgur.com/H0oBvMd.jpeg" alt="Tray">
+    <h3>Wooden Serving Tray</h3>
+    <p>₹499 - Custom Engraving Available</p>
+    <a class="btn" href="https://wa.me/919999999999?text=I want to order Wooden Tray from ShuGar">Order on WhatsApp</a>
   </div>
 
-  <div id="login">
-    <input type="text" id="usernameInput" placeholder="Enter your name"><br />
-    <select id="testNumbers">
-      <option value="">-- Select Test Number --</option>
-      <option value="+919999999999">+91 99999 99999 (OTP: 123456)</option>
-    </select><br />
-    <input type="text" id="phone" placeholder="Enter phone +91...">
-    <button onclick="sendOTP()">Send OTP</button><br />
-    <input type="text" id="otp" placeholder="Enter OTP">
-    <button onclick="verifyOTP()">Verify OTP</button>
-    <div id="recaptcha-container"></div>
+  <div class="card">
+    <img src="https://i.imgur.com/qBDJZvj.jpeg" alt="Spice Box">
+    <h3>Masala Spice Box</h3>
+    <p>₹699 - 9 Compartment</p>
+    <a class="btn" href="https://wa.me/919999999999?text=I want to order Spice Box from ShuGar">Order on WhatsApp</a>
   </div>
 
-  <div id="game" class="hidden">
-    <p>👤 Welcome <span id="username"></span> | 📞 <span id="userphone"></span></p>
-
-    <div id="walletSection" class="hidden">
-      <h3>Wallet Balance: ₹<span id="wallet">0</span></h3>
-      <input type="number" id="topup" placeholder="Amount to Add">
-      <button onclick="addMoney()">Add Money</button>
-    </div>
-
-    <div id="transactionSection" class="hidden">
-      <h3>📜 Your Transactions</h3>
-      <table>
-        <thead>
-          <tr><th>Choice</th><th>System</th><th>Result</th><th>Amount</th><th>Time</th></tr>
-        </thead>
-        <tbody id="txnBody"></tbody>
-      </table>
-      <button onclick="loadMore()">Next Page</button>
-    </div>
-
-    <div id="gameSection">
-      <h3>💼 Current Wallet: ₹<span id="walletInline">0</span></h3>
-      <h4>Choose a color (min ₹30 required)</h4>
-      <div>
-        <button class="button green" onclick="placeBet('Green')">Green</button>
-        <button class="button violet" onclick="placeBet('Violet')">Violet</button>
-        <button class="button red" onclick="placeBet('Red')">Red</button>
-      </div>
-      <p id="status"></p>
-      <p id="timer">✅ You can place your next bet now</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Your Choice</th>
-            <th>System Choice</th>
-            <th>Profit/Loss</th>
-            <th>Wallet</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-
-    <button onclick="logout()">Logout</button>
-    <audio id="beepSound">
-      <source src="https://www.soundjay.com/buttons/beep-07.mp3" type="audio/mpeg">
-    </audio>
+  <div class="card">
+    <img src="https://i.imgur.com/hT8ZBp1.jpeg" alt="Laptop Stand">
+    <h3>Laptop Stand</h3>
+    <p>₹899 - Ergonomic Design</p>
+    <a class="btn" href="https://wa.me/919999999999?text=I want to order Laptop Stand from ShuGar">Order on WhatsApp</a>
   </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAnA3CY0FHyjli9oyEaFRp7Wp__5Z9vObk",
-      authDomain: "shubh251625.firebaseapp.com",
-      projectId: "shubh251625",
-      storageBucket: "shubh251625.appspot.com",
-      messagingSenderId: "541512766925",
-      appId: "1:541512766925:web:eca74693e7626b8e496084"
-    };
+  <div class="card">
+    <img src="https://i.imgur.com/UgyrA7Y.jpeg" alt="Nameplate">
+    <h3>Custom Nameplate</h3>
+    <p>₹499 - Personalized Wooden</p>
+    <a class="btn" href="https://wa.me/919999999999?text=I want to order Nameplate from ShuGar">Order on WhatsApp</a>
+  </div>
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    let userRef, user, userName, betLock = false;
-    const history = [];
-    let lastVisibleTxn = null;
+</div>
 
-    function sendOTP() {
-      const phoneInput = document.getElementById("phone");
-      const selected = document.getElementById("testNumbers").value;
-      if (selected) phoneInput.value = selected;
-      userName = document.getElementById("usernameInput").value;
-      if (!userName || !phoneInput.value) return alert("Enter name and phone");
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container');
-        window.recaptchaVerifier.render();
-      }
-      auth.signInWithPhoneNumber(phoneInput.value, window.recaptchaVerifier)
-        .then(confirm => window.confirmationResult = confirm)
-        .then(() => alert("OTP Sent"));
-    }
+<h2>🛒 Amazon Picks</h2>
+<div class="container">
 
-    function verifyOTP() {
-      const code = document.getElementById("otp").value;
-      window.confirmationResult.confirm(code).then(handleLogin);
-    }
+  <div class="card">
+    <img src="https://m.media-amazon.com/images/I/61xJcwxbWUL._SL1500_.jpg" alt="Affiliate Tray">
+    <h3>Amazon Wooden Organizer</h3>
+    <p>Buy on Amazon</p>
+    <a class="btn" href="https://amzn.to/YOUR-AFFILIATE-LINK" target="_blank">View Product</a>
+  </div>
 
-    function handleLogin(result) {
-      user = result.user;
-      document.getElementById("login").classList.add("hidden");
-      document.getElementById("game").classList.remove("hidden");
-      document.getElementById("username").innerText = userName;
-      document.getElementById("userphone").innerText = user.phoneNumber;
-      userRef = db.collection("users").doc(user.uid);
-      userRef.get().then(doc => {
-        if (!doc.exists) return userRef.set({ name: userName, phone: user.phoneNumber, balance: 100 });
-      }).then(() => userRef.get()).then(doc => {
-        const bal = doc.data().balance;
-        document.getElementById("wallet").innerText = bal;
-        document.getElementById("walletInline").innerText = bal;
-      });
-    }
+</div>
 
-    function addMoney() {
-      const amt = parseInt(document.getElementById("topup").value);
-      if (amt > 0) {
-        userRef.update({ balance: firebase.firestore.FieldValue.increment(amt) }).then(() => {
-          return userRef.get();
-        }).then(doc => {
-          const bal = doc.data().balance;
-          document.getElementById("wallet").innerText = bal;
-          document.getElementById("walletInline").innerText = bal;
-        });
-      }
-    }
+<footer>
+  © 2025 ShuGar Customization | Made with ❤️ in India
+</footer>
 
-    function placeBet(selectedColor) {
-      if (betLock) return alert("⏳ Wait for next bet");
-      userRef.get().then(doc => {
-        const balance = doc.data().balance;
-        if (balance < 30) {
-          document.getElementById("status").innerText = "❌ Minimum ₹30 required.";
-          return;
-        }
-
-        betLock = true;
-        let timeLeft = 10;
-        document.getElementById("timer").innerText = `⏳ Next bet in ${timeLeft}s`;
-        const interval = setInterval(() => {
-          timeLeft--;
-          document.getElementById("timer").innerText = `⏳ Next bet in ${timeLeft}s`;
-          if (timeLeft === 0) {
-            clearInterval(interval);
-            betLock = false;
-            document.getElementById("timer").innerText = "✅ You can place your next bet now";
-            document.getElementById("beepSound").play();
-          }
-        }, 1000);
-
-        const colorOptions = ['Red', 'Green', 'Violet'];
-        const systemChoice = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-        let result = "LOST", winAmount = -10;
-
-        if (selectedColor === systemChoice) {
-          result = selectedColor === 'Violet' ? "WON 4X" : "WON 2X";
-          winAmount = selectedColor === 'Violet' ? 40 : 20;
-        }
-
-        const newBalance = balance + winAmount;
-        const txnTime = new Date().toLocaleString();
-
-        userRef.update({ balance: newBalance });
-        db.collection("users").doc(user.uid).collection("transactions").add({
-          type: "BET", choice: selectedColor, systemChoice, result, amount: winAmount, time: txnTime
-        });
-
-        document.getElementById("wallet").innerText = newBalance;
-        document.getElementById("walletInline").innerText = newBalance;
-        document.getElementById("status").innerText = `🎯 You chose: ${selectedColor}, System: ${systemChoice} → ${result}`;
-        history.unshift({ choice: selectedColor, systemChoice, result, winAmount, balance: newBalance });
-        if (history.length > 5) history.pop();
-        updateHistoryTable();
-      });
-    }
-
-    function updateHistoryTable() {
-      const tbody = document.getElementById("historyBody");
-      tbody.innerHTML = "";
-      history.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row.choice}</td>
-          <td>${row.systemChoice}</td>
-          <td>${row.winAmount >= 0 ? "+₹" + row.winAmount : "-₹" + Math.abs(row.winAmount)}</td>
-          <td>₹${row.balance}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function loadMore() {
-      let query = db.collection("users").doc(user.uid).collection("transactions")
-        .orderBy("time", "desc").limit(5);
-
-      if (lastVisibleTxn) query = query.startAfter(lastVisibleTxn);
-
-      query.get().then(snapshot => {
-        const tbody = document.getElementById("txnBody");
-        snapshot.docs.forEach(doc => {
-          const data = doc.data();
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${data.choice}</td>
-            <td>${data.systemChoice}</td>
-            <td>${data.result}</td>
-            <td>${data.amount}</td>
-            <td>${data.time}</td>`;
-          tbody.appendChild(row);
-        });
-        if (snapshot.docs.length > 0) {
-          lastVisibleTxn = snapshot.docs[snapshot.docs.length - 1];
-        }
-      });
-    }
-
-    function logout() {
-      auth.signOut().then(() => location.reload());
-    }
-
-    function handleMenu() {
-      const section = document.getElementById("menu").value;
-      document.getElementById("walletSection").style.display = section === "wallet" ? "block" : "none";
-      document.getElementById("gameSection").style.display = section === "game" ? "block" : "none";
-      document.getElementById("transactionSection").style.display = section === "transaction" ? "block" : "none";
-    }
-  </script>
 </body>
 </html>
