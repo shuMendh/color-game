@@ -167,7 +167,7 @@
       }
     }
 
-    function placeBet(choice) {
+    function placeBet(choiceColor) {
       if (betLock) return alert("⏳ Wait for next bet.");
       userRef.get().then(doc => {
         let balance = doc.data().balance;
@@ -194,12 +194,14 @@
         const systemChoice = colorOptions[Math.floor(Math.random() * colorOptions.length)];
         let result = "LOST", winAmount = 0;
 
-        if (choice === 'Green' && ['Green'].includes(systemChoice)) {
-          result = "WON 2X"; winAmount = 20;
-        } else if (choice === 'Red' && ['Red'].includes(systemChoice)) {
-          result = "WON 2X"; winAmount = 20;
-        } else if (choice === 'Violet' && ['Violet'].includes(systemChoice)) {
-          result = "WON 4X"; winAmount = 40;
+        if (choiceColor === systemChoice) {
+          if (choiceColor === 'Violet') {
+            result = "WON 4X";
+            winAmount = 40;
+          } else {
+            result = "WON 2X";
+            winAmount = 20;
+          }
         } else {
           winAmount = -10;
         }
@@ -207,14 +209,14 @@
         const newBalance = balance + winAmount;
         userRef.update({ balance: newBalance });
         db.collection("users").doc(user.uid).collection("transactions").add({
-          type: "BET", choice, systemChoice, result, amount: winAmount, time: new Date()
+          type: "BET", choice: choiceColor, systemChoice, result, amount: winAmount, time: new Date()
         });
 
         document.getElementById("wallet").innerText = newBalance;
-        document.getElementById("status").innerText = `You chose ${choice}, System chose ${systemChoice} → ${result}`;
+        document.getElementById("status").innerText = `You chose ${choiceColor}, System chose ${systemChoice} → ${result}`;
 
         // Update history
-        history.unshift({ choice, systemChoice, result, winAmount, balance: newBalance });
+        history.unshift({ choice: choiceColor, systemChoice, result, winAmount, balance: newBalance });
         if (history.length > 5) history.pop();
         updateHistoryTable();
       });
