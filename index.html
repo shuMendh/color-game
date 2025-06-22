@@ -16,7 +16,8 @@
     .violet { background: purple; color: white; }
     .number-btn { width: 60px; height: 60px; margin: 5px; font-size: 20px; }
     .menu-bar { position: absolute; top: 10px; right: 20px; }
-    #timer { font-weight: bold; color: red; margin-top: 10px; }
+    #timer { font-weight: bold; color: red; margin-top: 10px; font-size: 20px; }
+    #previousResult { font-size: 16px; color: #333; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -79,9 +80,14 @@
         <button class="number-btn" onclick="placeBet(9)">9</button>
       </div>
       <p id="status"></p>
-      <p id="timer" class="hidden">⏳ Next bet available in <span id="countdown">10</span>s</p>
+      <p id="timer">✅ You can place your next bet now</p>
+      <p id="previousResult"></p>
     </div>
     <button onclick="logout()">Logout</button>
+
+    <audio id="beepSound">
+      <source src="https://www.soundjay.com/buttons/beep-07.mp3" type="audio/mpeg">
+    </audio>
   </div>
 
   <script>
@@ -171,16 +177,16 @@
         }
         betLock = true;
         let timeLeft = 10;
-        document.getElementById("timer").classList.remove("hidden");
-        document.getElementById("countdown").innerText = timeLeft;
+        document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
 
         const timerInterval = setInterval(() => {
           timeLeft--;
-          document.getElementById("countdown").innerText = timeLeft;
+          document.getElementById("timer").innerText = `⏳ Next bet available in ${timeLeft}s`;
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             betLock = false;
-            document.getElementById("timer").classList.add("hidden");
+            document.getElementById("timer").innerText = "✅ You can place your next bet now";
+            document.getElementById("beepSound").play();
           }
         }, 1000);
 
@@ -205,6 +211,7 @@
         });
         document.getElementById("wallet").innerText = balance + winAmount;
         document.getElementById("status").innerText = `🎯 Draw: ${number}, ${result} | Wallet: ₹${balance + winAmount}`;
+        document.getElementById("previousResult").innerText = `Last Draw: ${number} (${result})`;
       });
     }
 
