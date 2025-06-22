@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Color Prediction Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      text-align: center;
+      padding: 50px;
+    }
+    .balance {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+    }
+    .red { background-color: crimson; color: white; }
+    .green { background-color: forestgreen; color: white; }
+    .result {
+      font-size: 22px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Color Prediction Game</h1>
+  <div class="balance" id="balance">Balance: ₹100</div>
+  <div>
+    <button class="red" onclick="play('Red')">I Choose Red</button>
+    <button class="green" onclick="play('Green')">I Choose Green</button>
+  </div>
+  <div class="result" id="result"></div>
+
+  <script>
+    let balance = 100;
+    const resultEl = document.getElementById('result');
+    const balanceEl = document.getElementById('balance');
+
+    function play(choice) {
+      if (balance < 10) {
+        resultEl.textContent = 'Insufficient balance to play.';
+        return;
+      }
+
+      const colors = ['Red', 'Green'];
+      const systemChoice = colors[Math.floor(Math.random() * colors.length)];
+
+      let message = `You chose ${choice}. System chose ${systemChoice}.\n`;
+
+      if (choice === systemChoice) {
+        balance += 8; // ₹8 profit
+        message += '🎉 You WON! ₹8 added.';
+      } else {
+        balance -= 10;
+        message += '😞 You LOST! ₹10 deducted.';
+      }
+
+      balanceEl.textContent = `Balance: ₹${balance}`;
+      resultEl.textContent = message;
+    }
+  </script>
+</body>
+</html>
